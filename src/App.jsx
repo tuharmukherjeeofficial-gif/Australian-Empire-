@@ -140,7 +140,7 @@ export default function App() {
   // --- GEMINI / AI SIMULATION INTEGRATION ---
   const generateAIVotesForTurn = async (activeBills) => {
     setIsAiProcessing(true);
-    addLog(` AI ENGINE: Evaluating legislative agenda for vacant AI seats...`);
+    addLog(" AI ENGINE: Evaluating legislative agenda for vacant AI seats...");
 
     // We process each bill in SENATE_REVIEW
     let updatedBills = [...activeBills];
