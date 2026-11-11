@@ -1,4 +1,3 @@
-```react
 import React, { useState, useEffect } from 'react';
 import { 
   Shield, Landmark, Users, Scroll, Crown, AlertTriangle, Play, 
@@ -70,7 +69,7 @@ const INITIAL_BILLS = [
     description: 'Establishes militarized solar and nuclear relays across northern states with direct funding allocated under Prime Council command.',
     sponsor: 'Governor of Western Australia',
     weeksInSenate: 1,
-    status: 'SENATE_REVIEW', // SENATE_REVIEW, PASSED, RETURNED_REVISION, DEADLOCK_JOINT_SITTING, FAILED
+    status: 'SENATE_REVIEW',
     originVotes: { for: 5, against: 1 },
     senateVotes: null,
     jointSittingVotes: null,
@@ -83,7 +82,7 @@ const INITIAL_BILLS = [
     domain: 'Health, Education & Domestic Affairs',
     description: 'Sets federal standards for healthcare worker pay and guarantees federal education subsidies across all 6 imperial states.',
     sponsor: 'The Chancellor',
-    weeksInSenate: 3, // Exceeds 2-week timer
+    weeksInSenate: 3,
     status: 'DEADLOCK_JOINT_SITTING',
     originVotes: { for: 10, against: 2 },
     senateVotes: { for: 10, against: 14 },
@@ -119,20 +118,18 @@ export default function App() {
   });
 
   const addLog = (text) => {
-  setLogs(prev => ["[YEAR " + year + "] " + text, ...prev.slice(0, 99)]);
-};
-
+    setLogs(prev => ["[YEAR " + year + "] " + text, ...prev.slice(0, 99)]);
+  };
 
   // --- ROLE CLAIMING HANDLERS ---
   const toggleRoleClaim = (roleId, humanName = "Player 1") => {
     setRoles(prevRoles => prevRoles.map(r => {
       if (r.id === roleId) {
-  const newlyHuman = !r.isHuman;
-  const newOccupant = newlyHuman ? humanName + " (Human)" : 'AI Bot';
-  addLog("Role Update: " + r.title + " is now controlled by " + newOccupant + ".");
-  return { ...r, isHuman: newlyHuman, occupant: newOccupant };
-}
-
+        const newlyHuman = !r.isHuman;
+        const newOccupant = newlyHuman ? humanName + " (Human)" : 'AI Bot';
+        addLog("Role Update: " + r.title + " is now controlled by " + newOccupant + ".");
+        return { ...r, isHuman: newlyHuman, occupant: newOccupant };
+      }
       return r;
     }));
   };
@@ -140,9 +137,8 @@ export default function App() {
   // --- GEMINI / AI SIMULATION INTEGRATION ---
   const generateAIVotesForTurn = async (activeBills) => {
     setIsAiProcessing(true);
-    addLog(" AI ENGINE: Evaluating legislative agenda for vacant AI seats...");
+    addLog("AI ENGINE: Evaluating legislative agenda for vacant AI seats...");
 
-    // We process each bill in SENATE_REVIEW
     let updatedBills = [...activeBills];
 
     for (let i = 0; i < updatedBills.length; i++) {
@@ -150,13 +146,12 @@ export default function App() {
       if (b.status === 'SENATE_REVIEW') {
         let aiResult = null;
 
-        // Attempt Gemini API call if key is provided
         if (apiKey) {
           try {
             const prompt = "You are acting as the AI Senate of the Australian Empire under a tetracameral constitution. Evaluate this bill: " + b.title + " - " + b.description + ". Respond in JSON format with properties 'decision' (either 'RATIFY' or 'REJECT') and 'reason' (short sentence).";
 
             const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=" + apiKey, {
-
+              method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 contents: [{ parts: [{ text: prompt }] }],
@@ -169,11 +164,10 @@ export default function App() {
               aiResult = JSON.parse(text);
             }
           } catch (e) {
-            console.warn("API call failed, falling back to personality algorithm:", e);
+            console.warn("API call failed, falling back to algorithm:", e);
           }
         }
 
-        // Fallback or standard algorithmic AI vote
         if (!aiResult) {
           const aiGovernors = roles.filter(r => !r.isHuman && r.category === 'Governor');
           const yesWeight = aiGovernors.reduce((acc, r) => {
@@ -193,19 +187,18 @@ export default function App() {
           b = {
             ...b,
             status: 'PASSED',
-senateVotes: { for: 17, against: 7 },
-history: [...b.history, "Senate AI Vote: RATIFIED (" + aiResult.reason + ")"]
-};
-
-          addLog(`✅ SENATE AI RATIFIED [${b.id}] "${b.title}" (${aiResult.reason})`);
+            senateVotes: { for: 17, against: 7 },
+            history: [...b.history, "Senate AI Vote: RATIFIED (" + aiResult.reason + ")"]
+          };
+          addLog("SENATE AI RATIFIED [" + b.id + "] \"" + b.title + "\" (" + aiResult.reason + ")");
         } else {
           b = {
             ...b,
             status: 'RETURNED_REVISION',
             senateVotes: { for: 8, against: 16 },
-            history: [...b.history, `Senate AI Vote: REJECTED & RETURNED (${aiResult.reason})`]
+            history: [...b.history, "Senate AI Vote: REJECTED & RETURNED (" + aiResult.reason + ")"]
           };
-          addLog(`🛑 SENATE AI RETURNED [${b.id}] for revision (${aiResult.reason})`);
+          addLog("SENATE AI RETURNED [" + b.id + "] for revision (" + aiResult.reason + ")");
         }
         updatedBills[i] = b;
       }
@@ -218,19 +211,17 @@ history: [...b.history, "Senate AI Vote: RATIFIED (" + aiResult.reason + ")"]
   // --- 1-YEAR TURN EXECUTION ENGINE ---
   const executeAnnualTurn = async () => {
     const nextYear = year + 1;
-    addLog(`⏳ ADVANCING SIMULATION: Executing Year ${year} -> Year ${nextYear}...`);
-    addLog(`🗳️ ELECTIONS: 2 Mid-Year & End-Year cycles executed for People's House (6-month terms).`);
-    addLog(`🗳️ ELECTIONS: Annual election completed for 1/3 States Custody and State Governors.`);
+    addLog("ADVANCING SIMULATION: Executing Year " + year + " -> Year " + nextYear + "...");
+    addLog("ELECTIONS: 2 Mid-Year & End-Year cycles executed for People's House (6-month terms).");
+    addLog("ELECTIONS: Annual election completed for 1/3 States Custody and State Governors.");
 
-    // 1. Process AI Voting on Pending Bills
     let processedBills = await generateAIVotesForTurn(bills);
 
-    // 2. Check 2-Week Senate Review Timers & Trigger Joint Sittings
     processedBills = processedBills.map(bill => {
       if (bill.status === 'SENATE_REVIEW') {
         const weeks = bill.weeksInSenate + 1;
         if (weeks >= 2) {
-          addLog(`⚠️ DEADLOCK DETECTED: [${bill.id}] exceeded 2-week Senate window. Referred to Joint Sitting!`);
+          addLog("DEADLOCK DETECTED: [" + bill.id + "] exceeded 2-week Senate window. Referred to Joint Sitting!");
           return {
             ...bill,
             weeksInSenate: weeks,
@@ -243,14 +234,13 @@ history: [...b.history, "Senate AI Vote: RATIFIED (" + aiResult.reason + ")"]
       return bill;
     });
 
-    // 3. Handle Executive Term Limits
     let newTerm = premierTerm + 1;
     if (newTerm > 2) {
-      addLog(`👑 CONSTITUTIONAL LIMIT: Premier completed 2 consecutive 1-year terms. Stepping down to Senate Presiding Officer.`);
+      addLog("CONSTITUTIONAL LIMIT: Premier completed 2 consecutive 1-year terms. Stepping down to Senate Presiding Officer.");
       setPremierTerm(1);
     } else {
       setPremierTerm(newTerm);
-      addLog(`👑 EXECUTIVE ELECTION: Premier re-elected for Term ${newTerm}/2.`);
+      addLog("EXECUTIVE ELECTION: Premier re-elected for Term " + newTerm + "/2.");
     }
 
     setBills(processedBills);
@@ -259,11 +249,9 @@ history: [...b.history, "Senate AI Vote: RATIFIED (" + aiResult.reason + ")"]
 
   // --- JOINT SITTING DEADLOCK RESOLUTION ---
   const runJointSitting = (billId) => {
-    // Total seats: Peoples (150) + Custody (12) + Prime (6) + Senate (24) = 192 Seats
     const humanGovernors = roles.filter(r => r.isHuman);
     const humanWeight = humanGovernors.length * 10; 
     
-    // Simulating vote tally
     const baseFor = 105 + humanWeight;
     const finalFor = Math.min(192, baseFor);
     const finalAgainst = 192 - finalFor;
@@ -275,11 +263,11 @@ history: [...b.history, "Senate AI Vote: RATIFIED (" + aiResult.reason + ")"]
         ...b,
         status: passed ? 'PASSED' : 'FAILED',
         jointSittingVotes: { for: finalFor, against: finalAgainst },
-        history: [...b.history, `Joint Sitting Vote (192 Seats): ${finalFor} FOR / ${finalAgainst} AGAINST. Result: ${passed ? 'PASSED & ENACTED' : 'FAILED'}.`]
+        history: [...b.history, "Joint Sitting Vote (192 Seats): " + finalFor + " FOR / " + finalAgainst + " AGAINST. Result: " + (passed ? 'PASSED & ENACTED' : 'FAILED') + "."]
       };
     }));
 
-    addLog(`🏛️ JOINT SITTING CONVENED for [${billId}]: ${finalFor} FOR vs ${finalAgainst} AGAINST (${passed ? 'ENACTED INTO LAW' : 'REJECTED'}).`);
+    addLog("JOINT SITTING CONVENED for [" + billId + "]: " + finalFor + " FOR vs " + finalAgainst + " AGAINST (" + (passed ? 'ENACTED INTO LAW' : 'REJECTED') + ").");
   };
 
   const handleCreateBill = (e) => {
@@ -288,7 +276,7 @@ history: [...b.history, "Senate AI Vote: RATIFIED (" + aiResult.reason + ")"]
 
     const house = HOUSES[newBill.originHouse];
     const billObj = {
-      id: `BILL-${year}-${Math.floor(10 + Math.random() * 90)}`,
+      id: "BILL-" + year + "-" + Math.floor(10 + Math.random() * 90),
       title: newBill.title,
       originHouse: newBill.originHouse,
       domain: house.domain,
@@ -299,11 +287,11 @@ history: [...b.history, "Senate AI Vote: RATIFIED (" + aiResult.reason + ")"]
       originVotes: { for: 8, against: 2 },
       senateVotes: null,
       jointSittingVotes: null,
-      history: [`Introduced in ${house.name} during Year ${year}`, `Forwarded to Imperial Senate for Ratification`]
+      history: ["Introduced in " + house.name + " during Year " + year, "Forwarded to Imperial Senate for Ratification"]
     };
 
     setBills([billObj, ...bills]);
-    addLog(`📜 NEW BILL: [${billObj.id}] introduced in ${house.name} by ${billObj.sponsor}.`);
+    addLog("NEW BILL: [" + billObj.id + "] introduced in " + house.name + " by " + billObj.sponsor + ".");
     setNewBill({ title: '', originHouse: 'PEOPLES', description: '', sponsor: '' });
     setActiveTab('pipeline');
   };
@@ -345,7 +333,7 @@ history: [...b.history, "Senate AI Vote: RATIFIED (" + aiResult.reason + ")"]
         </div>
       </header>
 
-      {/* API KEY & ENGINE STATUS STRIP */}
+      {/* ENGINE STATUS STRIP */}
       <section className="bg-slate-900/60 border-b border-slate-800/80 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2 text-slate-400">
           <Cpu className="w-4 h-4 text-amber-400" />
@@ -358,7 +346,7 @@ history: [...b.history, "Senate AI Vote: RATIFIED (" + aiResult.reason + ")"]
           <Sparkles className="w-3.5 h-3.5 text-purple-400" />
           <input
             type="password"
-            placeholder="Optional Gemini API Key (for live LLM votes)..."
+            placeholder="Optional Gemini API Key..."
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-[11px] text-slate-300 w-64 focus:outline-none focus:border-purple-500"
@@ -381,11 +369,7 @@ history: [...b.history, "Senate AI Vote: RATIFIED (" + aiResult.reason + ")"]
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-3 text-xs font-medium border-b-2 transition whitespace-nowrap ${
-                isActive 
-                  ? 'border-amber-400 text-amber-400 bg-slate-800/30' 
-                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
-              }`}
+              className={"flex items-center gap-2 px-4 py-3 text-xs font-medium border-b-2 transition whitespace-nowrap " + (isActive ? 'border-amber-400 text-amber-400 bg-slate-800/30' : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700')}
             >
               <Icon className="w-4 h-4" />
               {tab.label}
@@ -400,25 +384,21 @@ history: [...b.history, "Senate AI Vote: RATIFIED (" + aiResult.reason + ")"]
         {/* TAB 1: SEAT CLAIMING LOBBY */}
         {activeTab === 'lobby' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-start flex-wrap gap-4 bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
-              <div>
-                <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-                  <Users className="w-5 h-5 text-amber-400" /> Constitutional Role & Seat Lobby
-                </h2>
-                <p className="text-xs text-slate-400 mt-1 max-w-3xl">
-                  Claim any executive or legislative office to control it manually during the 1-year turn cycle. 
-                  All unassigned seats are dynamically driven by AI bots programmed with distinct political personalities.
-                </p>
-              </div>
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
+              <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+                <Users className="w-5 h-5 text-amber-400" /> Constitutional Role & Seat Lobby
+              </h2>
+              <p className="text-xs text-slate-400 mt-1 max-w-3xl">
+                Claim any executive or legislative office to control it manually during the 1-year turn cycle. 
+                All unassigned seats are dynamically driven by AI bots programmed with distinct political personalities.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {roles.map(role => (
                 <div 
                   key={role.id} 
-                  className={`bg-slate-900 border rounded-2xl p-4 flex flex-col justify-between space-y-3 shadow-lg transition ${
-                    role.isHuman ? 'border-amber-500/50 bg-amber-950/10' : 'border-slate-800'
-                  }`}
+                  className={"bg-slate-900 border rounded-2xl p-4 flex flex-col justify-between space-y-3 shadow-lg transition " + (role.isHuman ? 'border-amber-500/50 bg-amber-950/10' : 'border-slate-800')}
                 >
                   <div className="flex justify-between items-start">
                     <div>
@@ -428,4 +408,15 @@ history: [...b.history, "Senate AI Vote: RATIFIED (" + aiResult.reason + ")"]
                       <h3 className="font-bold text-slate-100 text-sm mt-1">{role.title}</h3>
                     </div>
                     {role.isHuman ? (
-         
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center gap-1">
+                        <User className="w-3 h-3" /> HUMAN
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-400 border border-purple-500/40 flex items-center gap-1">
+                        <Bot className="w-3 h-3" /> AI BOT
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="text-xs space-y-1">
+                    <p className="text-slate-400 font-medium
