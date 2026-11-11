@@ -127,11 +127,12 @@ export default function App() {
   const toggleRoleClaim = (roleId, humanName = "Player 1") => {
     setRoles(prevRoles => prevRoles.map(r => {
       if (r.id === roleId) {
-        const newlyHuman = !r.isHuman;
-        const newOccupant = newlyHuman ? `${humanName} (Human)` : 'AI Bot';
-        addLog(`Role Update: ${r.title} is now controlled by ${newOccupant}.`);
-        return { ...r, isHuman: newlyHuman, occupant: newOccupant };
-      }
+  const newlyHuman = !r.isHuman;
+  const newOccupant = newlyHuman ? humanName + " (Human)" : 'AI Bot';
+  addLog("Role Update: " + r.title + " is now controlled by " + newOccupant + ".");
+  return { ...r, isHuman: newlyHuman, occupant: newOccupant };
+}
+
       return r;
     }));
   };
