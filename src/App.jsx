@@ -119,8 +119,9 @@ export default function App() {
   });
 
   const addLog = (text) => {
-    setLogs(prev => [`[YEAR ${year}] ${text}`, ...prev.slice(0, 99)]);
-  };
+  setLogs(prev => ["[YEAR " + year + "] " + text, ...prev.slice(0, 99)]);
+};
+
 
   // --- ROLE CLAIMING HANDLERS ---
   const toggleRoleClaim = (roleId, humanName = "Player 1") => {
