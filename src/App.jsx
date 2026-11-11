@@ -96,7 +96,6 @@ const INITIAL_BILLS = [
 ];
 
 export default function App() {
-  // --- STATE ---
   const [year, setYear] = useState(2026);
   const [premierTerm, setPremierTerm] = useState(1);
   const [roles, setRoles] = useState(INITIAL_ROLES);
@@ -109,7 +108,6 @@ export default function App() {
     "System set to 1-Year Annual Cycles with automated AI fallback for vacant roles."
   ]);
 
-  // Form State
   const [newBill, setNewBill] = useState({
     title: '',
     originHouse: 'PEOPLES',
@@ -121,7 +119,6 @@ export default function App() {
     setLogs(prev => ["[YEAR " + year + "] " + text, ...prev.slice(0, 99)]);
   };
 
-  // --- ROLE CLAIMING HANDLERS ---
   const toggleRoleClaim = (roleId, humanName = "Player 1") => {
     setRoles(prevRoles => prevRoles.map(r => {
       if (r.id === roleId) {
@@ -134,7 +131,6 @@ export default function App() {
     }));
   };
 
-  // --- GEMINI / AI SIMULATION INTEGRATION ---
   const generateAIVotesForTurn = async (activeBills) => {
     setIsAiProcessing(true);
     addLog("AI ENGINE: Evaluating legislative agenda for vacant AI seats...");
@@ -208,7 +204,6 @@ export default function App() {
     return updatedBills;
   };
 
-  // --- 1-YEAR TURN EXECUTION ENGINE ---
   const executeAnnualTurn = async () => {
     const nextYear = year + 1;
     addLog("ADVANCING SIMULATION: Executing Year " + year + " -> Year " + nextYear + "...");
@@ -247,7 +242,6 @@ export default function App() {
     setYear(nextYear);
   };
 
-  // --- JOINT SITTING DEADLOCK RESOLUTION ---
   const runJointSitting = (billId) => {
     const humanGovernors = roles.filter(r => r.isHuman);
     const humanWeight = humanGovernors.length * 10; 
@@ -419,4 +413,5 @@ export default function App() {
                   </div>
 
                   <div className="text-xs space-y-1">
-                    <p className="text-slate-400 font-medium
+                    <p className="text-slate-400 font-medium">House: <span className="text-slate-200">{HOUSES[role.house]?.name}</span></p>
+                    <p className="text-slate-400">Current Occupant: <strong className="text-slate-100">{role.occupant}</strong><
