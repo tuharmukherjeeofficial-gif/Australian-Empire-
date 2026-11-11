@@ -193,9 +193,10 @@ export default function App() {
           b = {
             ...b,
             status: 'PASSED',
-            senateVotes: { for: 17, against: 7 },
-            history: [...b.history, `Senate AI Vote: RATIFIED (${aiResult.reason})`]
-          };
+senateVotes: { for: 17, against: 7 },
+history: [...b.history, "Senate AI Vote: RATIFIED (" + aiResult.reason + ")"]
+};
+
           addLog(`✅ SENATE AI RATIFIED [${b.id}] "${b.title}" (${aiResult.reason})`);
         } else {
           b = {
