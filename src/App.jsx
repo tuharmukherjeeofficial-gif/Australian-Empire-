@@ -153,9 +153,7 @@ export default function App() {
         // Attempt Gemini API call if key is provided
         if (apiKey) {
           try {
-            const prompt = `You are acting as the AI Senate of the Australian Empire under a tetracameral constitution. 
-              Evaluate this bill: "${b.title} - ${b.description}".
-              Respond in JSON format with properties "decision" (either "RATIFY" or "REJECT") and "reason" (short sentence).`;
+            const prompt = "You are acting as the AI Senate of the Australian Empire under a tetracameral constitution. Evaluate this bill: " + b.title + " - " + b.description + ". Respond in JSON format with properties 'decision' (either 'RATIFY' or 'REJECT') and 'reason' (short sentence).";
 
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
               method: 'POST',
