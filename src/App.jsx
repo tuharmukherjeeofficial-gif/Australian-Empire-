@@ -1,299 +1,280 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
-  Shield, Landmark, Users, Scroll, Crown, AlertTriangle, Play, 
-  Plus, CheckCircle, XCircle, Clock, ChevronRight, Vote, RefreshCw, Sparkles,
-  BookOpen, Layers, Award, FileText, Bot, UserCheck, User, Zap, Lock, Unlock, Cpu
+  Shield, Landmark, Users, Scroll, AlertTriangle, Play, 
+  CheckCircle, FileText, UserCheck, Zap, Calendar, Layers, Vote, Award
 } from 'lucide-react';
 
-// --- CONSTITUTIONAL DEFINITIONS ---
-const HOUSES = {
-  PEOPLES: { 
-    id: 'PEOPLES', 
-    name: "People's House", 
-    domain: "Budgets & National Operations", 
-    term: "6-Month Terms (2 per Turn)", 
-    chair: "Speaker of the House", 
-    color: "border-sky-500/40 bg-sky-950/30 text-sky-400",
-    seats: 150
-  },
-  CUSTODY: { 
-    id: 'CUSTODY', 
-    name: "States Custody", 
-    domain: "Health, Education & Domestic Affairs", 
-    term: "1 Year (1/3 Staggered)", 
-    chair: "The Chancellor", 
-    color: "border-emerald-500/40 bg-emerald-950/30 text-emerald-400",
-    seats: 12
-  },
-  PRIME: { 
-    id: 'PRIME', 
-    name: "Prime Council", 
-    domain: "Defense, Energy & Strategic Assets", 
-    term: "State Governors (Ex-Officio)", 
-    chair: "The Premier", 
-    color: "border-amber-500/40 bg-amber-950/30 text-amber-400",
-    seats: 6
-  },
-  SENATE: { 
-    id: 'SENATE', 
-    name: "Imperial Senate", 
-    domain: "Foreign Affairs & Grand Veto", 
-    term: "State Appointed / Direct", 
-    chair: "Ex-Premier (Presiding Officer)", 
-    color: "border-purple-500/40 bg-purple-950/30 text-purple-400",
-    seats: 24
-  }
+// --- CONSTITUTIONAL DEFINITIONS & STATE APPORTIONMENTS ---
+const JURISDICTIONS = {
+  NSW: { name: "New South Wales", peoples: 9, custody: 2, electoral: 11, leg: 27, region: 'state', baseVote: 1450000 },
+  VIC: { name: "Victoria", peoples: 8, custody: 2, electoral: 10, leg: 24, region: 'state', baseVote: 1280000 },
+  QLD: { name: "Queensland", peoples: 7, custody: 2, electoral: 9, leg: 21, region: 'state', baseVote: 1050000 },
+  WA:  { name: "Western Australia", peoples: 6, custody: 2, electoral: 8, leg: 18, region: 'state', baseVote: 780000 },
+  SA:  { name: "South Australia", peoples: 6, custody: 2, electoral: 8, leg: 18, region: 'state', baseVote: 640000 },
+  TAS: { name: "Tasmania", peoples: 4, custody: 2, electoral: 6, leg: 12, region: 'state', baseVote: 310000 },
+  NT:  { name: "Northern Territory", peoples: 4, custody: 2, electoral: 6, custodyType: '1 Voting + 1 Senator Custodian (Non-Voting)', leg: 12, region: 'territory', baseVote: 190000 },
+  ACT: { name: "Australian Capital Territory", peoples: 2, custody: 1, electoral: 3, custodyType: 'Senator Custodian (Non-Voting)', leg: 4, region: 'territory', baseVote: 220000 }
 };
 
-const INITIAL_ROLES = [
-  { id: 'premier', title: 'The Premier', category: 'Executive', house: 'PRIME', occupant: 'AI Bot', isHuman: false, personality: 'Imperial Loyalist', description: 'Head of Government & President of the Prime Council' },
-  { id: 'chancellor', title: 'The Chancellor', category: 'Executive', house: 'CUSTODY', occupant: 'AI Bot', isHuman: false, personality: 'Welfare Reformer', description: 'Second-in-command & Chairperson of States Custody' },
-  { id: 'expremier', title: 'Senate Presiding Officer', category: 'Legislative', house: 'SENATE', occupant: 'Ex-Premier Harrison', isHuman: false, personality: 'Constitutional Strict Constructionist', description: 'Immediate Ex-Premier leading the Senate' },
-  { id: 'speaker', title: "Speaker of People's House", category: 'Legislative', house: 'PEOPLES', occupant: 'AI Bot', isHuman: false, personality: 'Moderate Populist', description: 'Leads parliamentary procedure for budget votes' },
-  { id: 'gov_nsw', title: 'Governor of New South Wales', category: 'Governor', house: 'PRIME', occupant: 'AI Bot', isHuman: false, personality: 'Fiscal Conservative', state: 'NSW' },
-  { id: 'gov_vic', title: 'Governor of Victoria', category: 'Governor', house: 'PRIME', occupant: 'AI Bot', isHuman: false, personality: 'Social Progressive', state: 'VIC' },
-  { id: 'gov_qld', title: 'Governor of Queensland', category: 'Governor', house: 'PRIME', occupant: 'AI Bot', isHuman: false, personality: 'State Autonomist', state: 'QLD' },
-  { id: 'gov_wa', title: 'Governor of Western Australia', category: 'Governor', house: 'PRIME', occupant: 'AI Bot', isHuman: false, personality: 'Resource Hawk', state: 'WA' },
-  { id: 'gov_sa', title: 'Governor of South Australia', category: 'Governor', house: 'PRIME', occupant: 'AI Bot', isHuman: false, personality: 'Diplomatic Centrist', state: 'SA' },
-  { id: 'gov_tas', title: 'Governor of Tasmania', category: 'Governor', house: 'PRIME', occupant: 'AI Bot', isHuman: false, personality: 'Environmental Defense Specialist', state: 'TAS' },
-  { id: 'sec_defense', title: 'Secretary of Defense', category: 'Cabinet', house: 'SENATE', occupant: 'AI Bot', isHuman: false, personality: 'Defense Hawk', description: 'Non-voting advisory seat in Senate' },
-  { id: 'sec_treasury', title: 'Secretary of Treasury', category: 'Cabinet', house: 'SENATE', occupant: 'AI Bot', isHuman: false, personality: 'Balanced Budget Pragmatist', description: 'Non-voting advisory seat in Senate' }
+const POLITICAL_PARTIES = [
+  { id: 'royal_chambers', name: 'Royal Chambers', short: 'Royal Chambers', alignment: 'Right-Wing / Moderately Conservative', status: 'Oldest Party', base: 'National', ideology: 'Traditionalist, Conservative', color: 'text-sky-400 border-sky-500/40 bg-sky-950/30' },
+  { id: 'orange_party', name: 'Orange Party', short: 'Orange Party', alignment: 'Left-Wing / Moderately Liberal', status: 'Active', base: 'National', ideology: 'Progressive, Social Liberal', color: 'text-orange-400 border-orange-500/40 bg-orange-950/30' },
+  { id: 'ndp_australia', name: 'National Democratic Party of Australia', short: 'NDP Australia', alignment: 'Centrist', status: 'Active', base: 'National', ideology: 'Pragmatic Center, Moderate Reform', color: 'text-emerald-400 border-emerald-500/40 bg-emerald-950/30' },
+  { id: 'cebone', name: 'Cebone Party', short: 'Cebone Party', alignment: 'Local / Extremist Faction', status: 'Regional Active', base: 'New South Wales', ideology: 'Localist, Radical Extremist', color: 'text-rose-400 border-rose-500/40 bg-rose-950/30' },
+  { id: 'severity_group', name: 'Severity Group', short: 'Severity Group', alignment: 'Alliance with Cebone / Extremist Faction', status: 'Regional Active', base: 'Victoria', ideology: 'Militant Localist, Radical', color: 'text-purple-400 border-purple-500/40 bg-purple-950/30' }
 ];
 
-const INITIAL_BILLS = [
-  {
-    id: 'BILL-2026-01',
-    title: 'Imperial Energy Defense & Microgrid Grid Fortification',
-    originHouse: 'PRIME',
-    domain: 'Defense, Energy & Strategic Assets',
-    description: 'Establishes militarized solar and nuclear relays across northern states with direct funding allocated under Prime Council command.',
-    sponsor: 'Governor of Western Australia',
-    weeksInSenate: 1,
-    status: 'SENATE_REVIEW',
-    originVotes: { for: 5, against: 1 },
-    senateVotes: null,
-    jointSittingVotes: null,
-    history: ['Introduced in Prime Council', 'Passed Prime Council (5-1)', 'Submitted to Imperial Senate for Ratification']
-  },
-  {
-    id: 'BILL-2026-02',
-    title: 'Universal Medical & Education Standardization Act',
-    originHouse: 'CUSTODY',
-    domain: 'Health, Education & Domestic Affairs',
-    description: 'Sets federal standards for healthcare worker pay and guarantees federal education subsidies across all 6 imperial states.',
-    sponsor: 'The Chancellor',
-    weeksInSenate: 3,
-    status: 'DEADLOCK_JOINT_SITTING',
-    originVotes: { for: 10, against: 2 },
-    senateVotes: { for: 10, against: 14 },
-    jointSittingVotes: null,
-    history: [
-      'Passed States Custody (10-2)',
-      'Senate delayed action > 2 weeks (Mandatory Constitutional Timer Expired)',
-      'Automatically escalated to Joint Sitting of Union Legislature'
-    ]
-  }
+const INITIAL_ROLES = [
+  { id: 'premier', title: 'The Premier', category: 'Executive', house: 'PRIME', occupant: 'AI Bot', isHuman: false },
+  { id: 'chancellor', title: 'The Chancellor', category: 'Executive', house: 'CUSTODY', occupant: 'AI Bot', isHuman: false },
+  { id: 'speaker_peoples', title: "Speaker of People's House", category: 'Presiding Officer', house: 'PEOPLES', occupant: 'AI Bot', isHuman: false },
+  { id: 'presiding_senate', title: 'Presiding Officer of Imperial Senate', category: 'Presiding Officer', house: 'SENATE', occupant: 'AI Bot', isHuman: false },
+  { id: 'gov_nsw', title: 'Governor of New South Wales', category: 'Governor', house: 'PRIME', occupant: 'AI Bot', isHuman: false, state: 'NSW' },
+  { id: 'gov_vic', title: 'Governor of Victoria', category: 'Governor', house: 'PRIME', occupant: 'AI Bot', isHuman: false, state: 'VIC' },
+  { id: 'gov_qld', title: 'Governor of Queensland', category: 'Governor', house: 'PRIME', occupant: 'AI Bot', isHuman: false, state: 'QLD' },
+  { id: 'gov_wa', title: 'Governor of Western Australia', category: 'Governor', house: 'PRIME', occupant: 'AI Bot', isHuman: false, state: 'WA' },
+  { id: 'gov_sa', title: 'Governor of South Australia', category: 'Governor', house: 'PRIME', occupant: 'AI Bot', isHuman: false, state: 'SA' },
+  { id: 'gov_tas', title: 'Governor of Tasmania', category: 'Governor', house: 'PRIME', occupant: 'AI Bot', isHuman: false, state: 'TAS' },
+  { id: 'lt_gov_act', title: 'Lieutenant Governor of ACT', category: 'Governor', house: 'PRIME', occupant: 'AI Bot', isHuman: false, state: 'ACT' },
+  { id: 'lt_gov_nt', title: 'Lieutenant Governor of NT', category: 'Governor', house: 'PRIME', occupant: 'AI Bot', isHuman: false, state: 'NT' },
+  // 11 Cabinet Secretaries
+  { id: 'sec_state', title: 'Secretary of State', category: 'Cabinet', house: 'SENATE', occupant: 'AI Bot', isHuman: false },
+  { id: 'sec_defense', title: 'Secretary of Defense', category: 'Cabinet', house: 'PRIME', occupant: 'AI Bot', isHuman: false },
+  { id: 'sec_treasury', title: 'Secretary of Treasury', category: 'Cabinet', house: 'PEOPLES', occupant: 'AI Bot', isHuman: false },
+  { id: 'sec_interior', title: 'Secretary of Interior', category: 'Cabinet', house: 'CUSTODY', occupant: 'AI Bot', isHuman: false },
+  { id: 'sec_homeland', title: 'Secretary of Homeland Security', category: 'Cabinet', house: 'PRIME', occupant: 'AI Bot', isHuman: false },
+  { id: 'sec_agri', title: 'Secretary of Agriculture', category: 'Cabinet', house: 'CUSTODY', occupant: 'AI Bot', isHuman: false },
+  { id: 'sec_transport', title: 'Secretary of Transport', category: 'Cabinet', house: 'PEOPLES', occupant: 'AI Bot', isHuman: false },
+  { id: 'sec_labour', title: 'Secretary of Labour', category: 'Cabinet', house: 'PEOPLES', occupant: 'AI Bot', isHuman: false },
+  { id: 'sec_hhs', title: 'Secretary of Health and Human Services', category: 'Cabinet', house: 'CUSTODY', occupant: 'AI Bot', isHuman: false },
+  { id: 'sec_edu', title: 'Secretary of Education', category: 'Cabinet', house: 'CUSTODY', occupant: 'AI Bot', isHuman: false },
+  { id: 'sec_energy', title: 'Secretary of Energy', category: 'Cabinet', house: 'PRIME', occupant: 'AI Bot', isHuman: false }
 ];
 
 export default function App() {
-  const [year, setYear] = useState(2026);
-  const [premierTerm, setPremierTerm] = useState(1);
+  const [currentDate, setCurrentDate] = useState(new Date(2026, 0, 1));
   const [roles, setRoles] = useState(INITIAL_ROLES);
-  const [bills, setBills] = useState(INITIAL_BILLS);
   const [activeTab, setActiveTab] = useState('lobby');
-  const [apiKey, setApiKey] = useState('');
-  const [isAiProcessing, setIsAiProcessing] = useState(false);
-  const [logs, setLogs] = useState([
-    "Empire Political Simulation Engine Initialized.",
-    "System set to 1-Year Annual Cycles with automated AI fallback for vacant roles."
+
+  const [bills, setBills] = useState([
+    {
+      id: 'BILL-2026-01',
+      title: 'Imperial Energy Defense & Microgrid Fortification',
+      originHouse: 'PRIME',
+      description: 'Establishes militarized solar and nuclear relays across northern states.',
+      sponsor: 'Governor of Western Australia',
+      status: 'FLOOR DEBATE',
+      speeches: ['Governor of WA: This microgrid secures energy autonomy for the northern frontier.'],
+      amendments: [],
+      votes: { for: 0, against: 0, abstain: 0 }
+    }
   ]);
 
-  const [newBill, setNewBill] = useState({
-    title: '',
-    originHouse: 'PEOPLES',
-    description: '',
-    sponsor: ''
-  });
+  const [newBillTitle, setNewBillTitle] = useState('');
+  const [newBillHouse, setNewBillHouse] = useState('PEOPLES');
+  const [newBillDesc, setNewBillDesc] = useState('');
+  const [speechInputs, setSpeechInputs] = useState({});
+  const [amendmentInputs, setAmendmentInputs] = useState({});
+
+  const [addresses, setAddresses] = useState([]);
+  const [addressSpeaker, setAddressSpeaker] = useState('The Premier');
+  const [addressType, setAddressType] = useState('State of the Union Address');
+  const [addressText, setAddressText] = useState('');
+
+  const [budgets, setBudgets] = useState([]);
+  const [budgetDept, setBudgetDept] = useState('Secretary of Treasury (Imperial Budget)');
+  const [budgetAmount, setBudgetAmount] = useState('');
+  const [budgetNotes, setBudgetNotes] = useState('');
+
+  // Election Night Ranked-Choice & Electoral College Suspense State
+  const [electionStage, setElectionStage] = useState(0); // 0 = Not started, 1 = 30% Reporting, 2 = 75% Reporting, 3 = Final Ranked Count
+  const [electionResults, setElectionResults] = useState(null);
+
+  const [logs, setLogs] = useState(["Simulation initialized for January 1, 2026. Real-time 24-hour calendar active."]);
 
   const addLog = (text) => {
-    setLogs(prev => ["[YEAR " + year + "] " + text, ...prev.slice(0, 99)]);
+    setLogs(prev => ["[" + currentDate.toDateString() + "] " + text, ...prev.slice(0, 99)]);
   };
 
-  const toggleRoleClaim = (roleId, humanName = "Player 1") => {
-    setRoles(prevRoles => prevRoles.map(r => {
-      if (r.id === roleId) {
-        const newlyHuman = !r.isHuman;
-        const newOccupant = newlyHuman ? humanName + " (Human)" : 'AI Bot';
-        addLog("Role Update: " + r.title + " is now controlled by " + newOccupant + ".");
-        return { ...r, isHuman: newlyHuman, occupant: newOccupant };
-      }
-      return r;
+  const advanceOneDay = () => {
+    const nextDate = new Date(currentDate);
+    nextDate.setDate(currentDate.getDate() + 1);
+    setCurrentDate(nextDate);
+    addLog("Calendar advanced to " + nextDate.toDateString() + ".");
+  };
+
+  const toggleRoleClaim = (roleId) => {
+    setRoles(prev => prev.map(r => {
+      if (r.id !== roleId) return r;
+      const nextHuman = !r.isHuman;
+      const nextOccupant = nextHuman ? "Player 1 (Human)" : "AI Bot";
+      addLog(r.title + " is now occupied by " + nextOccupant + ".");
+      return { ...r, isHuman: nextHuman, occupant: nextOccupant };
     }));
   };
 
-  const generateAIVotesForTurn = async (activeBills) => {
-    setIsAiProcessing(true);
-    addLog("AI ENGINE: Evaluating legislative agenda for vacant AI seats...");
-
-    let updatedBills = [...activeBills];
-
-    for (let i = 0; i < updatedBills.length; i++) {
-      let b = updatedBills[i];
-      if (b.status === 'SENATE_REVIEW') {
-        let aiResult = null;
-
-        if (apiKey) {
-          try {
-            const prompt = "You are acting as the AI Senate of the Australian Empire under a tetracameral constitution. Evaluate this bill: " + b.title + " - " + b.description + ". Respond in JSON format with properties 'decision' (either 'RATIFY' or 'REJECT') and 'reason' (short sentence).";
-
-            const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=" + apiKey, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { responseMimeType: "application/json" }
-              })
-            });
-            const data = await res.json();
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (text) {
-              aiResult = JSON.parse(text);
-            }
-          } catch (e) {
-            console.warn("API call failed, falling back to algorithm:", e);
-          }
-        }
-
-        if (!aiResult) {
-          const aiGovernors = roles.filter(r => !r.isHuman && r.category === 'Governor');
-          const yesWeight = aiGovernors.reduce((acc, r) => {
-            if (r.personality.includes('Conservative') && b.originHouse === 'PRIME') return acc + 2;
-            if (r.personality.includes('Progressive') && b.originHouse === 'CUSTODY') return acc + 2;
-            return acc + 1;
-          }, 0);
-
-          const decision = yesWeight >= 5 ? 'RATIFY' : 'REJECT';
-          aiResult = {
-            decision,
-            reason: decision === 'RATIFY' ? 'Passed with AI faction consensus.' : 'Rejected by Senate AI coalition.'
-          };
-        }
-
-        if (aiResult.decision === 'RATIFY') {
-          b = {
-            ...b,
-            status: 'PASSED',
-            senateVotes: { for: 17, against: 7 },
-            history: [...b.history, "Senate AI Vote: RATIFIED (" + aiResult.reason + ")"]
-          };
-          addLog("SENATE AI RATIFIED [" + b.id + "] \"" + b.title + "\" (" + aiResult.reason + ")");
-        } else {
-          b = {
-            ...b,
-            status: 'RETURNED_REVISION',
-            senateVotes: { for: 8, against: 16 },
-            history: [...b.history, "Senate AI Vote: REJECTED & RETURNED (" + aiResult.reason + ")"]
-          };
-          addLog("SENATE AI RETURNED [" + b.id + "] for revision (" + aiResult.reason + ")");
-        }
-        updatedBills[i] = b;
-      }
-    }
-
-    setIsAiProcessing(false);
-    return updatedBills;
+  const handleIntroduceBill = (e) => {
+    e.preventDefault();
+    if (!newBillTitle.trim()) return;
+    const id = "BILL-2026-0" + (bills.length + 1);
+    const created = {
+      id: id,
+      title: newBillTitle,
+      originHouse: newBillHouse,
+      description: newBillDesc || "Standard legislative bill.",
+      sponsor: "Human Delegate",
+      status: "FLOOR DEBATE",
+      speeches: [],
+      amendments: [],
+      votes: { for: 0, against: 0, abstain: 0 }
+    };
+    setBills([created, ...bills]);
+    addLog("Introduced " + id + ": " + newBillTitle + " in " + newBillHouse + ".");
+    setNewBillTitle('');
+    setNewBillDesc('');
   };
 
-  const executeAnnualTurn = async () => {
-    const nextYear = year + 1;
-    addLog("ADVANCING SIMULATION: Executing Year " + year + " -> Year " + nextYear + "...");
-    addLog("ELECTIONS: 2 Mid-Year & End-Year cycles executed for People's House (6-month terms).");
-    addLog("ELECTIONS: Annual election completed for 1/3 States Custody and State Governors.");
-
-    let processedBills = await generateAIVotesForTurn(bills);
-
-    processedBills = processedBills.map(bill => {
-      if (bill.status === 'SENATE_REVIEW') {
-        const weeks = bill.weeksInSenate + 1;
-        if (weeks >= 2) {
-          addLog("DEADLOCK DETECTED: [" + bill.id + "] exceeded 2-week Senate window. Referred to Joint Sitting!");
-          return {
-            ...bill,
-            weeksInSenate: weeks,
-            status: 'DEADLOCK_JOINT_SITTING',
-            history: [...bill.history, 'Senate 2-week review window expired. Referred to Joint Sitting.']
-          };
-        }
-        return { ...bill, weeksInSenate: weeks };
-      }
-      return bill;
-    });
-
-    let newTerm = premierTerm + 1;
-    if (newTerm > 2) {
-      addLog("CONSTITUTIONAL LIMIT: Premier completed 2 consecutive 1-year terms. Stepping down to Senate Presiding Officer.");
-      setPremierTerm(1);
-    } else {
-      setPremierTerm(newTerm);
-      addLog("EXECUTIVE ELECTION: Premier re-elected for Term " + newTerm + "/2.");
-    }
-
-    setBills(processedBills);
-    setYear(nextYear);
+  const submitSpeech = (billId) => {
+    const text = speechInputs[billId];
+    if (!text || !text.trim()) return;
+    setBills(prev => prev.map(b => b.id === billId ? { ...b, speeches: [...b.speeches, text] } : b));
+    addLog("Floor debate speech delivered on " + billId + ".");
+    setSpeechInputs({ ...speechInputs, [billId]: '' });
   };
 
-  const runJointSitting = (billId) => {
-    const humanGovernors = roles.filter(r => r.isHuman);
-    const humanWeight = humanGovernors.length * 10; 
-    
-    const baseFor = 105 + humanWeight;
-    const finalFor = Math.min(192, baseFor);
-    const finalAgainst = 192 - finalFor;
-    const passed = finalFor > 96;
+  const submitAmendment = (billId) => {
+    const text = amendmentInputs[billId];
+    if (!text || !text.trim()) return;
+    setBills(prev => prev.map(b => b.id === billId ? { ...b, amendments: [...b.amendments, text] } : b));
+    addLog("Amendment proposed on " + billId + ": " + text);
+    setAmendmentInputs({ ...amendmentInputs, [billId]: '' });
+  };
 
+  const castVote = (billId, type) => {
     setBills(prev => prev.map(b => {
       if (b.id !== billId) return b;
-      return {
-        ...b,
-        status: passed ? 'PASSED' : 'FAILED',
-        jointSittingVotes: { for: finalFor, against: finalAgainst },
-        history: [...b.history, "Joint Sitting Vote (192 Seats): " + finalFor + " FOR / " + finalAgainst + " AGAINST. Result: " + (passed ? 'PASSED & ENACTED' : 'FAILED') + "."]
-      };
+      return { ...b, votes: { ...b.votes, [type]: b.votes[type] + 1 } };
     }));
-
-    addLog("JOINT SITTING CONVENED for [" + billId + "]: " + finalFor + " FOR vs " + finalAgainst + " AGAINST (" + (passed ? 'ENACTED INTO LAW' : 'REJECTED') + ").");
+    addLog("Recorded " + type.toUpperCase() + " vote on " + billId + ".");
   };
 
-  const handleCreateBill = (e) => {
+  const deliverAddress = (e) => {
     e.preventDefault();
-    if (!newBill.title || !newBill.description) return;
-
-    const house = HOUSES[newBill.originHouse];
-    const billObj = {
-      id: "BILL-" + year + "-" + Math.floor(10 + Math.random() * 90),
-      title: newBill.title,
-      originHouse: newBill.originHouse,
-      domain: house.domain,
-      description: newBill.description,
-      sponsor: newBill.sponsor || 'Human Delegate',
-      weeksInSenate: 0,
-      status: 'SENATE_REVIEW',
-      originVotes: { for: 8, against: 2 },
-      senateVotes: null,
-      jointSittingVotes: null,
-      history: ["Introduced in " + house.name + " during Year " + year, "Forwarded to Imperial Senate for Ratification"]
+    if (!addressText.trim()) return;
+    const entry = {
+      date: currentDate.toDateString(),
+      speaker: addressSpeaker,
+      type: addressType,
+      text: addressText
     };
+    setAddresses([entry, ...addresses]);
+    addLog(addressSpeaker + " delivered " + addressType + ".");
+    setAddressText('');
+  };
 
-    setBills([billObj, ...bills]);
-    addLog("NEW BILL: [" + billObj.id + "] introduced in " + house.name + " by " + billObj.sponsor + ".");
-    setNewBill({ title: '', originHouse: 'PEOPLES', description: '', sponsor: '' });
-    setActiveTab('pipeline');
+  const submitBudget = (e) => {
+    e.preventDefault();
+    if (!budgetAmount.trim()) return;
+    const entry = {
+      date: currentDate.toDateString(),
+      department: budgetDept,
+      amount: budgetAmount,
+      notes: budgetNotes || "Submitted to People's House for review."
+    };
+    setBudgets([entry, ...budgets]);
+    addLog(budgetDept + " laid down budget (" + budgetAmount + ") before the People's House.");
+    setBudgetAmount('');
+    setBudgetNotes('');
+  };
+
+  // --- SUSPENSEFUL RANKED-CHOICE & ELECTORAL COLLEGE ENGINE ---
+  const runElectionWave = () => {
+    if (electionStage === 0 || electionStage === 3) {
+      // Generate fresh randomized suspenseful election data
+      const stateBreakdown = {};
+      let firstPrefTotals = { royal_chambers: 0, orange_party: 0, ndp_australia: 0, cebone: 0, severity_group: 0 };
+
+      Object.entries(JURISDICTIONS).forEach(([code, info]) => {
+        const swing = () => 0.82 + Math.random() * 0.36;
+        let rc = Math.round(info.baseVote * 0.32 * swing());
+        let op = Math.round(info.baseVote * 0.31 * swing());
+        let ndp = Math.round(info.baseVote * 0.21 * swing());
+        let ceb = code === 'NSW' ? Math.round(info.baseVote * 0.26 * swing()) : Math.round(info.baseVote * 0.03 * swing());
+        let sev = code === 'VIC' ? Math.round(info.baseVote * 0.25 * swing()) : Math.round(info.baseVote * 0.02 * swing());
+
+        firstPrefTotals.royal_chambers += rc;
+        firstPrefTotals.orange_party += op;
+        firstPrefTotals.ndp_australia += ndp;
+        firstPrefTotals.cebone += ceb;
+        firstPrefTotals.severity_group += sev;
+
+        // Ranked Choice Runoff inside each jurisdiction (Top 2 finalists after Cebone/Severity & NDP preferences)
+        const cebSevPool = ceb + sev;
+        const rcFinal = rc + Math.round(cebSevPool * 0.54) + Math.round(ndp * (0.45 + Math.random() * 0.12));
+        const opFinal = op + Math.round(cebSevPool * 0.46) + Math.round(ndp * (0.43 + Math.random() * 0.12));
+
+        const winner = rcFinal >= opFinal ? 'Royal Chambers' : 'Orange Party';
+        stateBreakdown[code] = {
+          name: info.name,
+          electoral: info.electoral,
+          rcFirst: rc,
+          opFirst: op,
+          ndpFirst: ndp,
+          cebSevFirst: cebSevPool,
+          rcFinal: rcFinal,
+          opFinal: opFinal,
+          winner: winner,
+          margin: Math.abs(rcFinal - opFinal)
+        };
+      });
+
+      // Compute Electoral College & National Ranked Popular Vote
+      let rcElectoral = 0;
+      let opElectoral = 0;
+      let rcPopFinal = 0;
+      let opPopFinal = 0;
+
+      Object.values(stateBreakdown).forEach(st => {
+        if (st.winner === 'Royal Chambers') rcElectoral += st.electoral;
+        else opElectoral += st.electoral;
+        rcPopFinal += st.rcFinal;
+        opPopFinal += st.opFinal;
+      });
+
+      const popWinner = rcPopFinal >= opPopFinal ? 'Royal Chambers' : 'Orange Party';
+      const ecWinner = rcElectoral >= 31 ? 'Royal Chambers' : (opElectoral >= 31 ? 'Orange Party' : 'Deadlock');
+      const doubleMandateMet = popWinner === ecWinner && ecWinner !== 'Deadlock';
+
+      setElectionResults({
+        firstPrefTotals,
+        stateBreakdown,
+        rcElectoral,
+        opElectoral,
+        rcPopFinal,
+        opPopFinal,
+        popWinner,
+        ecWinner,
+        doubleMandateMet
+      });
+      setElectionStage(1);
+      addLog("ELECTION NIGHT WAVE 1 (30% Reporting): Early first-preference ballots coming in...");
+    } else if (electionStage === 1) {
+      setElectionStage(2);
+      addLog("ELECTION NIGHT WAVE 2 (75% Reporting): Cebone & Severity Group preferences triggering razor-thin swings in NSW & VIC!");
+    } else if (electionStage === 2) {
+      setElectionStage(3);
+      if (electionResults.doubleMandateMet) {
+        addLog("FINAL CERTIFIED RESULT: " + electionResults.ecWinner + " wins BOTH the Ranked Popular Vote and Electoral College (" + Math.max(electionResults.rcElectoral, electionResults.opElectoral) + "/61)!");
+      } else {
+        addLog("CONSTITUTIONAL CRISIS: Split verdict! Popular Vote won by " + electionResults.popWinner + " vs Electoral College won by " + electionResults.ecWinner + "!");
+      }
+    }
   };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col selection:bg-amber-500 selection:text-slate-950">
       
-      {/* IMPERIAL HEADER */}
+      {/* HEADER */}
       <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur-md sticky top-0 z-50 px-4 py-3 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-yellow-500 to-amber-600 flex items-center justify-center text-slate-950 shadow-lg shadow-amber-500/20 font-black text-xl">
@@ -303,59 +284,36 @@ export default function App() {
             <h1 className="font-bold text-lg leading-none bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 bg-clip-text text-transparent">
               AUSTRALIAN EMPIRE
             </h1>
-            <p className="text-[11px] text-slate-400 mt-1 font-mono tracking-wider">CONSTITUTIONAL SIMULATION & AI ENGINE</p>
+            <p className="text-[11px] text-slate-400 mt-1 font-mono tracking-wider">TETRACAMERAL REAL-TIME PARLIAMENT</p>
           </div>
         </div>
 
-        {/* 1-YEAR TURN ENGINE CONTROLS */}
+        {/* REAL-TIME 24-HOUR CALENDAR CONTROLS */}
         <div className="flex items-center space-x-3">
-          <div className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs font-mono flex items-center gap-3">
-            <div><span className="text-slate-500">CYCLE:</span> <strong className="text-amber-400 text-sm">{year}</strong></div>
-            <div className="border-l border-slate-800 pl-3">
-              <span className="text-slate-500">PREMIER TERM:</span> <strong className="text-slate-200">{premierTerm}/2 Yrs</strong>
-            </div>
+          <div className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs font-mono flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-amber-400" />
+            <strong className="text-amber-400">{currentDate.toDateString()}</strong>
           </div>
 
           <button
-            onClick={executeAnnualTurn}
-            disabled={isAiProcessing}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-amber-500/20 transition disabled:opacity-50"
+            onClick={advanceOneDay}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-amber-500/20 transition"
           >
-            {isAiProcessing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-slate-950" />}
-            Execute 1-Year Turn
+            <Play className="w-4 h-4 fill-slate-950" /> Advance 1 Day
           </button>
         </div>
       </header>
 
-      {/* ENGINE STATUS STRIP */}
-      <section className="bg-slate-900/60 border-b border-slate-800/80 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-2 text-slate-400">
-          <Cpu className="w-4 h-4 text-amber-400" />
-          <span>Engine Status: <strong className="text-emerald-400">Hybrid AI / Human Active</strong></span>
-          <span className="text-slate-600">|</span>
-          <span>Human Seats Claimed: <strong className="text-amber-400">{roles.filter(r => r.isHuman).length} / {roles.length}</strong></span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-          <input
-            type="password"
-            placeholder="Optional Gemini API Key..."
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-[11px] text-slate-300 w-64 focus:outline-none focus:border-purple-500"
-          />
-        </div>
-      </section>
-
       {/* NAVIGATION TABS */}
       <div className="border-b border-slate-800 bg-slate-900/40 px-4 flex gap-2 overflow-x-auto">
         {[
-          { id: 'lobby', label: 'Seat Claiming Lobby', icon: Users },
-          { id: 'pipeline', label: 'Legislative Pipeline', icon: Scroll },
-          { id: 'create', label: 'Draft New Bill', icon: Plus },
-          { id: 'constitution', label: 'Constitutional Charter', icon: BookOpen },
-          { id: 'logs', label: 'Simulation Logs', icon: FileText }
+          { id: 'lobby', label: 'Roles & Cabinet', icon: Users },
+          { id: 'composition', label: 'Apportionment & EC', icon: Layers },
+          { id: 'parties', label: 'Political Parties', icon: Landmark },
+          { id: 'elections', label: 'Ranked Elections', icon: Vote },
+          { id: 'deliberation', label: 'Floor Debate & Bills', icon: Scroll },
+          { id: 'addresses', label: 'Addresses & Budgets', icon: FileText },
+          { id: 'logs', label: 'Audit Log', icon: Shield }
         ].map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -372,290 +330,35 @@ export default function App() {
         })}
       </div>
 
-      {/* MAIN BODY CONTENT */}
+      {/* BODY CONTENT */}
       <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto space-y-6">
 
-        {/* TAB 1: SEAT CLAIMING LOBBY */}
+        {/* LOBBY TAB */}
         {activeTab === 'lobby' && (
           <div className="space-y-6">
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
               <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-                <Users className="w-5 h-5 text-amber-400" /> Constitutional Role & Seat Lobby
+                <Users className="w-5 h-5 text-amber-400" /> Executive, Presiding Officers & 11 Cabinet Departments
               </h2>
-              <p className="text-xs text-slate-400 mt-1 max-w-3xl">
-                Claim any executive or legislative office to control it manually during the 1-year turn cycle. 
-                All unassigned seats are dynamically driven by AI bots programmed with distinct political personalities.
-              </p>
+              <p className="text-xs text-slate-400 mt-1">Claim any office to play manually; unclaimed offices remain operated by AI.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {roles.map(role => (
-                <div 
-                  key={role.id} 
-                  className={"bg-slate-900 border rounded-2xl p-4 flex flex-col justify-between space-y-3 shadow-lg transition " + (role.isHuman ? 'border-amber-500/50 bg-amber-950/10' : 'border-slate-800')}
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 uppercase">
-                        {role.category}
-                      </span>
-                      <h3 className="font-bold text-slate-100 text-sm mt-1">{role.title}</h3>
-                    </div>
-                    {role.isHuman ? (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center gap-1">
-                        <User className="w-3 h-3" /> HUMAN
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-400 border border-purple-500/40 flex items-center gap-1">
-                        <Bot className="w-3 h-3" /> AI BOT
-                      </span>
-                    )}
+                <div key={role.id} className={"bg-slate-900 border rounded-2xl p-4 flex flex-col justify-between space-y-3 shadow-lg transition " + (role.isHuman ? 'border-amber-500/50 bg-amber-950/10' : 'border-slate-800')}>
+                  <div>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 uppercase">{role.category}</span>
+                    <h3 className="font-bold text-slate-100 text-sm mt-1">{role.title}</h3>
+                    <p className="text-xs text-slate-400 mt-1">Occupant: <strong className="text-slate-200">{role.occupant}</strong></p>
                   </div>
-
-                  <div className="text-xs space-y-1">
-                    <p className="text-slate-400 font-medium">House: <span className="text-slate-200">{HOUSES[role.house]?.name}</span></p>
-                    <p className="text-slate-400">Current Occupant: <strong className="text-slate-100">{role.occupant}</strong></p>
-                    <p className="text-slate-500 text-[11px] italic">Personality: {role.personality}</p>
-                  </div>
-
                   <button
                     onClick={() => toggleRoleClaim(role.id)}
                     className={"w-full py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 " + (role.isHuman ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-amber-500 hover:bg-amber-400 text-slate-950')}
                   >
                     {role.isHuman ? <UserCheck className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
-                    {role.isHuman ? 'Release Seat to AI Bot' : 'Claim Seat (Human Player)'}
+                    {role.isHuman ? 'Release Seat' : 'Claim Office'}
                   </button>
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* TAB 2: LEGISLATIVE PIPELINE */}
-        {activeTab === 'pipeline' && (
-          <div className="space-y-6">
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex justify-between items-center flex-wrap gap-4">
-              <div>
-                <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-                  <Scroll className="w-5 h-5 text-amber-400" /> Imperial Legislative Pipeline
-                </h2>
-                <p className="text-xs text-slate-400 mt-1">
-                  Track multi-house bills across Senate review windows and constitutional deadlock resolutions.
-                </p>
-              </div>
-              <button 
-                onClick={() => setActiveTab('create')}
-                className="px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 text-xs font-bold flex items-center gap-1.5"
-              >
-                <Plus className="w-4 h-4" /> Introduce Bill
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {bills.map(bill => {
-                const origin = HOUSES[bill.originHouse];
-                return (
-                  <div key={bill.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl">
-                    <div className="flex justify-between items-start flex-wrap gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs text-amber-400 font-bold">{bill.id}</span>
-                          <span className={"text-[10px] px-2 py-0.5 rounded border font-semibold " + origin.color}>
-                            Origin: {origin.name}
-                          </span>
-                        </div>
-                        <h3 className="text-base font-bold text-slate-100 mt-1">{bill.title}</h3>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {bill.status === 'SENATE_REVIEW' && (
-                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-500/20 text-purple-400 border border-purple-500/40 flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5" /> Senate Review (Wk {bill.weeksInSenate}/2)
-                          </span>
-                        )}
-                        {bill.status === 'DEADLOCK_JOINT_SITTING' && (
-                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse flex items-center gap-1">
-                            <AlertTriangle className="w-3.5 h-3.5" /> Constitutional Deadlock
-                          </span>
-                        )}
-                        {bill.status === 'PASSED' && (
-                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center gap-1">
-                            <CheckCircle className="w-3.5 h-3.5" /> Enacted into Imperial Law
-                          </span>
-                        )}
-                        {bill.status === 'RETURNED_REVISION' && (
-                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center gap-1">
-                            <XCircle className="w-3.5 h-3.5" /> Returned for Revision
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-slate-300">{bill.description}</p>
-                    
-                    <div className="text-[11px] font-mono text-slate-400 bg-slate-950 p-2.5 rounded-xl border border-slate-800/80">
-                      Sponsor: <span className="text-slate-200">{bill.sponsor}</span> | Domain: <span className="text-slate-200">{bill.domain}</span>
-                    </div>
-
-                    {bill.status === 'DEADLOCK_JOINT_SITTING' && (
-                      <div className="bg-rose-950/20 border border-rose-500/30 p-4 rounded-xl flex items-center justify-between flex-wrap gap-3">
-                        <div className="text-xs text-rose-300">
-                          <strong>Senate 2-Week Window Expired.</strong> Convene all 192 seats in Joint Sitting to break the deadlock.
-                        </div>
-                        <button
-                          onClick={() => runJointSitting(bill.id)}
-                          className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-400 text-slate-950 font-bold text-xs flex items-center gap-2 transition"
-                        >
-                          <Landmark className="w-4 h-4" /> Convene Joint Sitting (192 Seats)
-                        </button>
-                      </div>
-                    )}
-
-                    <div className="border-t border-slate-800 pt-3">
-                      <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Legislative History</h4>
-                      <ul className="space-y-1">
-                        {bill.history.map((h, idx) => (
-                          <li key={idx} className="text-xs text-slate-400 flex items-center gap-2">
-                            <ChevronRight className="w-3 h-3 text-amber-400 flex-shrink-0" />
-                            <span>{h}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 3: DRAFT NEW BILL */}
-        {activeTab === 'create' && (
-          <div className="max-w-2xl mx-auto bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-6">
-            <div>
-              <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-                <Plus className="w-5 h-5 text-amber-400" /> Introduce Imperial Legislation
-              </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Draft a bill and submit it to its designated origin chamber.
-              </p>
-            </div>
-
-            <form onSubmit={handleCreateBill} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">Bill Title</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Imperial High-Speed Rail Infrastructure Act"
-                  value={newBill.title}
-                  onChange={(e) => setNewBill({ ...newBill, title: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">Origin House</label>
-                <select
-                  value={newBill.originHouse}
-                  onChange={(e) => setNewBill({ ...newBill, originHouse: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400"
-                >
-                  {Object.values(HOUSES).map(h => (
-                    <option key={h.id} value={h.id}>{h.name} ({h.domain})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">Sponsor Title / Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Governor of New South Wales"
-                  value={newBill.sponsor}
-                  onChange={(e) => setNewBill({ ...newBill, sponsor: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">Bill Description & Provisions</label>
-                <textarea
-                  required
-                  rows={4}
-                  placeholder="Details of the legislative proposal..."
-                  value={newBill.description}
-                  onChange={(e) => setNewBill({ ...newBill, description: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-bold text-xs uppercase tracking-wider hover:from-amber-400 hover:to-yellow-400 transition"
-              >
-                Submit Bill to Origin House
-              </button>
-            </form>
-          </div>
-        )}
-
-        {/* TAB 4: CONSTITUTIONAL CHARTER */}
-        {activeTab === 'constitution' && (
-          <div className="space-y-6">
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
-              <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-amber-400" /> Tetracameral Constitutional Architecture
-              </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                The constitutional mechanics governing the Australian Empire simulation.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Object.values(HOUSES).map(house => (
-                <div key={house.id} className={"bg-slate-900 border rounded-2xl p-5 space-y-3 shadow-lg " + house.color}>
-                  <div className="flex justify-between items-start">
-                    <h3 className="font-bold text-base">{house.name}</h3>
-                    <span className="text-xs font-mono font-bold bg-slate-950/60 px-2.5 py-1 rounded-lg border border-slate-800">
-                      {house.seats} Seats
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-300 font-medium">Domain: {house.domain}</p>
-                  <p className="text-xs text-slate-400">Electoral Term: {house.term}</p>
-                  <p className="text-xs text-slate-400">Presiding Officer: {house.chair}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 5: SIMULATION LOGS */}
-        {activeTab === 'logs' && (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-amber-400" /> Imperial Audit & Log Stream
-              </h2>
-              <button 
-                onClick={() => setLogs(["Simulation Logs Cleared."])}
-                className="text-xs text-slate-400 hover:text-slate-200"
-              >
-                Clear Log
-              </button>
-            </div>
-
-            <div className="bg-slate-950 font-mono text-xs p-4 rounded-xl border border-slate-800 h-96 overflow-y-auto space-y-2">
-              {logs.map((log, index) => (
-                <div key={index} className="text-slate-300 border-b border-slate-900/60 pb-1">
-                  {log}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-      </main>
-    </div>
-  );
-}
+    
